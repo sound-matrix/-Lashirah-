@@ -46,6 +46,14 @@ jobs:
           page=get('/admin/')
           assert 'var A=null, tab=\'medals\', editAch=-1, unlocked=true;' in page,'Original authenticated editor not available'
           public=get('/')
+          assert 'id="intro-critical-css"' in public, 'Missing critical intro first-paint stylesheet'
+          assert 'document.documentElement.classList.add("js","intro-pending")' in public,'Intro gate must activate in the document head'
+          assert 'html.intro-pending #intro{display:block!important' in public,'Intro must paint before page'
+          assert 'if(window.__releaseIntro) window.__releaseIntro();' in public,'Intro must release gate after fade'
+          assert 'if(window.__IS_ADMIN_SITE || location.hash' in public,'Admin must bypass intro'
+          assert public.index('id="intro-critical-css"') < public.index('<body>'),'Intro critical CSS must be in head'
+          assert public.index('document.documentElement.classList.add("js","intro-pending")') < public.index('<body>'),'Intro JS gate must run before body'
+
           assert 'id="protoFlag"' not in public,'Prototype contact disclaimer must be removed'
           assert 'mailto:replace@example.com' not in public,'Legacy mailto recipient is still exposed'
           assert "window.location.href='mailto:'" not in public,'Legacy email app flow still present'
@@ -69,6 +77,8 @@ jobs:
           assert 'nandavaramhassan@gmail.com' in captured, 'Private destination missing from mock envelope'
           assert 'Interested in sponsorship' in captured
           assert 'youtube-add' in page,'YouTube editor missing'
+          assert 'window.__IS_ADMIN_SITE=true' in page,'Admin must opt out of public intro'
+          assert 'html.intro-pending #intro{display:none!important}' in page,'Intro must remain hidden in admin'
           assert 'admin-standalone-boot' in page,'Standalone admin startup missing'
           assert 'admin-standalone-style' in page,'Homepage must be hidden on admin domain'
           assert 'CMS.open()' in page,'Original dashboard must open on admin domain'
