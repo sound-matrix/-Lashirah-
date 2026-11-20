@@ -2,6 +2,7 @@
 declare(strict_types=1);
 // Private recipient: never sent to the visitor's browser.
 const CONTACT_RECIPIENT = 'nandavaramhassan@gmail.com';
+require_once __DIR__.'/cms/mail.php';
 header('Content-Type: application/json; charset=utf-8');
 header('Cache-Control: no-store');
 header('X-Content-Type-Options: nosniff');
@@ -46,13 +47,12 @@ if(count($events)>=5){flock($fp,LOCK_UN);fclose($fp);respond(429,'Too many messa
 $events[]=$now;
 rewind($fp);ftruncate($fp,0);fwrite($fp,json_encode($events));fflush($fp);flock($fp,LOCK_UN);fclose($fp);
 @chmod($statePath,0600);
-$subject='Lashirah website enquiry: '.($about?:'General').' from '.$name;
+$subject='New Lashirah Enquiry - '.$name.' ('.($about?:'General').')';
 $body="New enquiry from lashirah.com\n\n".
       "Name: $name\nEmail: $email\nPhone: ".($phone?:'-')."\n".
       "Enquiry: ".($about?:'General')."\nPackage: ".($tier?:'-')."\n\n".
       "Message:\n$message\n";
-$headers=['From'=>'Lashirah Website <no-reply@lashirah.com>','Reply-To'=>$email,'Content-Type'=>'text/plain; charset=UTF-8','X-Mailer'=>'Lashirah Contact Form'];
-if(!function_exists('mail')||!@mail(CONTACT_RECIPIENT,$subject,$body,$headers)){
+if(!lash_send_enquiry(CONTACT_RECIPIENT,$name,$email,$subject,$body)){
     error_log('Lashirah contact: mail submission failed');
     respond(503,'Your message could not be submitted. Please try again later.');
 }
