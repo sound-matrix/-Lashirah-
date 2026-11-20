@@ -1,5 +1,4 @@
 name: Deploy Lashirah to Hostinger
-
 on:
   push:
     branches: [main]
@@ -14,9 +13,15 @@ concurrency:
 
 jobs:
   deploy:
-    name: Verify and deploy over FTPS
+    name: Verify and deploy over SSH
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 25
+    env:
+      SSH_HOST: 82.25.107.62
+      SSH_PORT: '65002'
+      SSH_USER: u419719929
+      SSH_TARGET_PATH: /home/u419719929/domains/lashirah.com/public_html
+      SSH_ED25519_FINGERPRINT: 'SHA256:sxb45CEQcolp6ddRf4NNDG9v5XgeeAxS2bxRUJBYMkc'
     steps:
       - name: Checkout website
         uses: actions/checkout@v4
@@ -28,44 +33,58 @@ jobs:
           php -l admin/index.php
           php -l admin/config.example.php
 
-      - name: Verify Hostinger credentials configured
+      - name: Verify deployment key secret
         env:
-          FTP_HOST: ${{ secrets.HOSTINGER_FTP_HOST }}
-          FTP_USER: ${{ secrets.HOSTINGER_FTP_USER }}
-          FTP_PASSWORD: ${{ secrets.HOSTINGER_FTP_PASSWORD }}
+          SSH_PRIVATE_KEY: ${{ secrets.HOSTINGER_SSH_PRIVATE_KEY }}
         run: |
-          if [ -z "$FTP_HOST" ] || [ -z "$FTP_USER" ] || [ -z "$FTP_PASSWORD" ]; then
-            echo "::error::Configure HOSTINGER_FTP_HOST, HOSTINGER_FTP_USER and HOSTINGER_FTP_PASSWORD under GitHub Actions secrets."
+          if [ -z "$SSH_PRIVATE_KEY" ]; then
+            echo "::error::Add the HOSTINGER_SSH_PRIVATE_KEY GitHub Actions secret (private key generated for lashirah-github-deploy)."
             exit 1
           fi
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "$SSH_PRIVATE_KEY" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          ssh-keygen -y -f ~/.ssh/id_ed25519 >/dev/null
 
-      # Use a dedicated Hostinger FTP account with its root mapped to public_html.
-      # Prevent deletion/overwrite of client-managed uploads, CMS data and credentials.
-      - name: Upload website to Hostinger (FTPS)
-        uses: SamKirkland/FTP-Deploy-Action@v4.4.0
-        with:
-          server: ${{ secrets.HOSTINGER_FTP_HOST }}
-          username: ${{ secrets.HOSTINGER_FTP_USER }}
-          password: ${{ secrets.HOSTINGER_FTP_PASSWORD }}
-          protocol: ftps
-          port: 21
-          server-dir: ./
-          local-dir: ./
-          exclude: |
-            **/.git*
-            **/.git*/**
-            **/.github/**
-            **/node_modules/**
-            **/.DS_Store
-            **/README.md
-            **/HOSTINGER-ADMIN-SETUP.md
-            **/.gitignore
-            **/admin/config.local.php
-            **/storage/gallery.json
-            **/uploads/gallery/*.jpg
-            **/uploads/gallery/*.jpeg
-            **/uploads/gallery/*.png
-            **/uploads/gallery/*.webp
-            **/uploads/gallery/*.gif
-            **/uploads/gallery/*.php
-            **/uploads/gallery/*.phtml
+      - name: Verify Hostinger SSH host fingerprint
+        run: |
+          set -euo pipefail
+          # Verify against the ED25519 fingerprint published in Hostinger's SSH Access panel.
+          # Never trust an unverified ssh-keyscan result.
+          ssh-keyscan -T 15 -p "$SSH_PORT" -t ed25519 "$SSH_HOST" > ~/.ssh/known_hosts
+          if [ ! -s ~/.ssh/known_hosts ]; then
+            echo "::error::Could not fetch Hostinger SSH ED25519 host key."
+            exit 1
+          fi
+          actual="$(ssh-keygen -lf ~/.ssh/known_hosts -E sha256 | awk '$4 == "(ED25519)" {print $2;exit}')"
+          if [ "$actual" != "$SSH_ED25519_FINGERPRINT" ]; then
+            echo "::error::SSH host key does not match the fingerprint verified in Hostinger hPanel."
+            exit 1
+          fi
+          chmod 600 ~/.ssh/known_hosts
+
+      - name: Verify remote document root and rsync availability
+        run: |
+          ssh -o BatchMode=yes -o StrictHostKeyChecking=yes -p "$SSH_PORT" "$SSH_USER@$SSH_HOST" \
+            "test -d '$SSH_TARGET_PATH' && test -w '$SSH_TARGET_PATH' && command -v rsync >/dev/null"
+
+      - name: Deploy website files without deleting client content
+        run: |
+          rsync -az --no-perms --no-owner --no-group \
+            --exclude='/.git/' \
+            --exclude='/.github/' \
+            --exclude='/.gitignore' \
+            --exclude='/README.md' \
+            --exclude='/HOSTINGER-ADMIN-SETUP.md' \
+            --exclude='/HOSTINGER-SECURE-DEPLOY.md' \
+            --exclude='/admin/config.local.php' \
+            --exclude='/storage/gallery.json' \
+            --exclude='/uploads/gallery/*.jpg' \
+            --exclude='/uploads/gallery/*.jpeg' \
+            --exclude='/uploads/gallery/*.png' \
+            --exclude='/uploads/gallery/*.webp' \
+            --exclude='/uploads/gallery/*.gif' \
+            --exclude='/uploads/gallery/*.php' \
+            --exclude='/uploads/gallery/*.phtml' \
+            -e "ssh -o BatchMode=yes -o StrictHostKeyChecking=yes -p $SSH_PORT" \
+            ./ "$SSH_USER@$SSH_HOST:${SSH_TARGET_PATH%/}/"
