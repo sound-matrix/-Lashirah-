@@ -21,7 +21,9 @@ jobs:
       - name: Exercise authenticated editor, publish and public gallery
         run: |
           php -r 'file_put_contents("admin/config.local.php", "<?php return ".var_export(["username"=>"clientadmin","password_hash"=>password_hash("test-password",PASSWORD_DEFAULT)],true).";");'
-          php -S 127.0.0.1:8765 -t . >/tmp/lashirah-php.log 2>&1 &
+          printf '#!/bin/sh\ncat > /tmp/lashirah-contact-message.txt\nexit 0\n' > /tmp/lashirah-sendmail.sh
+          chmod +x /tmp/lashirah-sendmail.sh
+          php -d sendmail_path=/tmp/lashirah-sendmail.sh -S 127.0.0.1:8765 -t . >/tmp/lashirah-php.log 2>&1 &
           trap 'cat /tmp/lashirah-php.log' EXIT
           python3 - <<'PY'
           import http.cookiejar,json,re,time,urllib.request,urllib.parse,html,subprocess,tempfile,os
@@ -42,6 +44,29 @@ jobs:
           opener.open(urllib.request.Request(base+'/admin/',data=body,method='POST'),timeout=15)
           page=get('/admin/')
           assert 'var A=null, tab=\'medals\', editAch=-1, unlocked=true;' in page,'Original authenticated editor not available'
+          public=get('/')
+          assert 'id="protoFlag"' not in public,'Prototype contact disclaimer must be removed'
+          assert 'mailto:replace@example.com' not in public,'Legacy mailto recipient is still exposed'
+          assert "window.location.href='mailto:'" not in public,'Legacy email app flow still present'
+          assert 'action="/contact.php"' in public,'Contact form is not using server endpoint'
+          import urllib.error
+          try:
+              opener.open(base+'/contact.php',timeout=15)
+              raise AssertionError('GET /contact.php should fail')
+          except urllib.error.HTTPError as ex:assert ex.code==405
+          def submit(payload):
+              req=urllib.request.Request(base+'/contact.php',method='POST',
+                data=json.dumps(payload).encode(),headers={'Content-Type':'application/json','Origin':'https://lashirah.com'})
+              return opener.open(req,timeout=15)
+          try:
+              submit({'name':'Test','email':'invalid','message':'hi'})
+              raise AssertionError('Bad email should be rejected')
+          except urllib.error.HTTPError as ex:assert ex.code==422
+          result=json.load(submit({'name':'Visitor','email':'visitor@example.net','message':'Interested in sponsorship','phone':'','about':'Sponsorship','tier':'Lead Title & Equipment Partner','website':''}))
+          assert result['ok']
+          captured=Path('/tmp/lashirah-contact-message.txt').read_text()
+          assert 'nandavaramhassan@gmail.com' in captured, 'Private destination missing from mock envelope'
+          assert 'Interested in sponsorship' in captured
           assert 'youtube-add' in page,'YouTube editor missing'
           assert 'admin-standalone-boot' in page,'Standalone admin startup missing'
           assert 'admin-standalone-style' in page,'Homepage must be hidden on admin domain'
