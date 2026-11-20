@@ -74,10 +74,14 @@ if (allowed() && ($_SERVER['REQUEST_METHOD']??'GET')==='GET') {
     // Avoid previous browser-only edits overwriting the server's published state.
     $html=str_replace("var sv=JSON.parse(localStorage.getItem(LS_KEY)||'null');","var sv=null;",$html);
     $html=str_replace('⬇ Download updated website','✓ Publish to website',$html);
+    // The editor is hosted on admin.lashirah.com. Close must open the public website,
+    // not merely remove the overlay while leaving the admin-only page visible.
+    $html=str_replace("case 'close': close(); return;",
+      "case 'close': window.open('https://lashirah.com/','_blank','noopener'); return;", $html);
     $html=str_replace('Edits are saved on this device only until you download the updated website.','Review changes, then click Publish to update the live website.',$html);
     $html=str_replace('Your edits are only on this device. Download the updated website to share it. It\\\'s one HTML file with everything inside.','Click Publish to update lashirah.com immediately.',$html);
     $html=str_replace('case \'dl\': busy(true); downloadSite().then(function(){busy(false);},function(){busy(false);}); return;',
-      'case \'dl\': busy(true); fetch("/publish.php",{method:"POST",headers:{"Content-Type":"application/json","X-CSRF-Token":window.__CMS_TOKEN},credentials:"same-origin",body:JSON.stringify({data:D,images:CMS.getPendingImages()})}).then(function(r){return r.json().then(function(j){if(!r.ok||!j.ok)throw Error(j.error||"Publish failed");return j;});}).then(function(){busy(false);toastMsg("✓ Published to lashirah.com successfully");},function(e){busy(false);toastMsg("Publish failed: "+e.message);}); return;',
+      'case \'dl\': busy(true); fetch(window.location.origin+"/publish.php",{method:"POST",headers:{"Content-Type":"application/json","X-CSRF-Token":window.__CMS_TOKEN},credentials:"same-origin",body:JSON.stringify({data:D,images:CMS.getPendingImages()})}).then(function(r){return r.text().then(function(raw){var j;try{j=JSON.parse(raw);}catch(e){throw Error("Server returned HTTP "+r.status+". Please refresh and try again.");}if(!r.ok||!j.ok)throw Error(j.error||"Publish failed");return j;});}).then(function(){busy(false);toastMsg("✓ Published to lashirah.com successfully");},function(e){busy(false);toastMsg("Publish failed: "+e.message);}); return;',
       $html);
     // Let the client paste a YouTube URL into the existing Videos tab.
     $needle="var h='<div class=\"ad-card\"><h3>Video gallery</h3>";
