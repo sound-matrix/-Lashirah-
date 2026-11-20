@@ -46,6 +46,12 @@ jobs:
           page=get('/admin/')
           assert 'var A=null, tab=\'medals\', editAch=-1, unlocked=true;' in page,'Original authenticated editor not available'
           public=get('/')
+          assert 'footer-layout' in public and 'footer-athlete' in public and 'footer-credit' in public,'Footer two-column layout missing'
+          assert 'Website designed and developed by' in public,'Design and development credit missing'
+          assert 'www.sound-matrix.com' in public,'Company website missing'
+          assert "Profile details from Lashirah" not in public,'Old footer disclaimer still visible'
+          assert 'id="adminLink"' not in public,'Extra footer admin link should be removed'
+
           assert 'id="intro-critical-css"' in public, 'Missing critical intro first-paint stylesheet'
           assert 'document.documentElement.classList.add("js","intro-pending")' in public,'Intro gate must activate in the document head'
           assert 'html.intro-pending #intro{display:block!important' in public,'Intro must paint before page'
