@@ -14,9 +14,9 @@ concurrency:
 
 jobs:
   deploy:
-    name: Verify and deploy over FTPS
+    name: Verify and deploy over SSH
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 25
     steps:
       - name: Checkout website
         uses: actions/checkout@v4
@@ -28,44 +28,72 @@ jobs:
           php -l admin/index.php
           php -l admin/config.example.php
 
-      - name: Verify Hostinger credentials configured
+      - name: Verify SSH configuration
         env:
-          FTP_HOST: ${{ secrets.HOSTINGER_FTP_HOST }}
-          FTP_USER: ${{ secrets.HOSTINGER_FTP_USER }}
-          FTP_PASSWORD: ${{ secrets.HOSTINGER_FTP_PASSWORD }}
+          SSH_HOST: ${{ secrets.HOSTINGER_SSH_HOST }}
+          SSH_USER: ${{ secrets.HOSTINGER_SSH_USER }}
+          SSH_PORT: ${{ secrets.HOSTINGER_SSH_PORT }}
+          SSH_PRIVATE_KEY: ${{ secrets.HOSTINGER_SSH_PRIVATE_KEY }}
+          SSH_KNOWN_HOSTS: ${{ secrets.HOSTINGER_SSH_KNOWN_HOSTS }}
+          SSH_TARGET_PATH: ${{ secrets.HOSTINGER_SSH_TARGET_PATH }}
         run: |
-          if [ -z "$FTP_HOST" ] || [ -z "$FTP_USER" ] || [ -z "$FTP_PASSWORD" ]; then
-            echo "::error::Configure HOSTINGER_FTP_HOST, HOSTINGER_FTP_USER and HOSTINGER_FTP_PASSWORD under GitHub Actions secrets."
+          for name in SSH_HOST SSH_USER SSH_PORT SSH_PRIVATE_KEY SSH_KNOWN_HOSTS SSH_TARGET_PATH; do
+            if [ -z "${!name}" ]; then
+              echo "::error::Missing HOSTINGER_${name} repository secret. Configure Hostinger SSH access before deploying."
+              exit 1
+            fi
+          done
+          if ! [[ "$SSH_PORT" =~ ^[0-9]+$ ]]; then
+            echo "::error::HOSTINGER_SSH_PORT must be numeric."
+            exit 1
+          fi
+          if ! [[ "$SSH_TARGET_PATH" == /* ]] || [[ "$SSH_TARGET_PATH" == *'..'* ]]; then
+            echo "::error::HOSTINGER_SSH_TARGET_PATH must be an absolute server path without '..'."
             exit 1
           fi
 
-      # Use a dedicated Hostinger FTP account with its root mapped to public_html.
-      # Prevent deletion/overwrite of client-managed uploads, CMS data and credentials.
-      - name: Upload website to Hostinger (FTPS)
-        uses: SamKirkland/FTP-Deploy-Action@v4.4.0
-        with:
-          server: ${{ secrets.HOSTINGER_FTP_HOST }}
-          username: ${{ secrets.HOSTINGER_FTP_USER }}
-          password: ${{ secrets.HOSTINGER_FTP_PASSWORD }}
-          protocol: ftps
-          port: 21
-          server-dir: ./
-          local-dir: ./
-          exclude: |
-            **/.git*
-            **/.git*/**
-            **/.github/**
-            **/node_modules/**
-            **/.DS_Store
-            **/README.md
-            **/HOSTINGER-ADMIN-SETUP.md
-            **/.gitignore
-            **/admin/config.local.php
-            **/storage/gallery.json
-            **/uploads/gallery/*.jpg
-            **/uploads/gallery/*.jpeg
-            **/uploads/gallery/*.png
-            **/uploads/gallery/*.webp
-            **/uploads/gallery/*.gif
-            **/uploads/gallery/*.php
-            **/uploads/gallery/*.phtml
+      - name: Configure verified SSH host and deployment key
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.HOSTINGER_SSH_PRIVATE_KEY }}
+          SSH_KNOWN_HOSTS: ${{ secrets.HOSTINGER_SSH_KNOWN_HOSTS }}
+        run: |
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "$SSH_PRIVATE_KEY" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          printf '%s\n' "$SSH_KNOWN_HOSTS" > ~/.ssh/known_hosts
+          chmod 600 ~/.ssh/known_hosts
+
+      - name: Verify target folder exists
+        env:
+          SSH_HOST: ${{ secrets.HOSTINGER_SSH_HOST }}
+          SSH_USER: ${{ secrets.HOSTINGER_SSH_USER }}
+          SSH_PORT: ${{ secrets.HOSTINGER_SSH_PORT }}
+          SSH_TARGET_PATH: ${{ secrets.HOSTINGER_SSH_TARGET_PATH }}
+        run: |
+          ssh -o BatchMode=yes -o StrictHostKeyChecking=yes -p "$SSH_PORT" "$SSH_USER@$SSH_HOST" \
+            "test -d '$SSH_TARGET_PATH' && test -w '$SSH_TARGET_PATH'"
+
+      - name: Deploy changed website files, preserve uploaded content
+        env:
+          SSH_HOST: ${{ secrets.HOSTINGER_SSH_HOST }}
+          SSH_USER: ${{ secrets.HOSTINGER_SSH_USER }}
+          SSH_PORT: ${{ secrets.HOSTINGER_SSH_PORT }}
+          SSH_TARGET_PATH: ${{ secrets.HOSTINGER_SSH_TARGET_PATH }}
+        run: |
+          rsync -az --no-perms --no-owner --no-group \
+            --exclude='/.git/' \
+            --exclude='/.github/' \
+            --exclude='/.gitignore' \
+            --exclude='/README.md' \
+            --exclude='/HOSTINGER-ADMIN-SETUP.md' \
+            --exclude='/admin/config.local.php' \
+            --exclude='/storage/gallery.json' \
+            --exclude='/uploads/gallery/*.jpg' \
+            --exclude='/uploads/gallery/*.jpeg' \
+            --exclude='/uploads/gallery/*.png' \
+            --exclude='/uploads/gallery/*.webp' \
+            --exclude='/uploads/gallery/*.gif' \
+            --exclude='/uploads/gallery/*.php' \
+            --exclude='/uploads/gallery/*.phtml' \
+            -e "ssh -o BatchMode=yes -o StrictHostKeyChecking=yes -p $SSH_PORT" \
+            ./ "$SSH_USER@$SSH_HOST:${SSH_TARGET_PATH%/}/"
