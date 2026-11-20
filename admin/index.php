@@ -58,6 +58,59 @@ if (($_SERVER['REQUEST_METHOD']??'GET')==='POST') {
         } catch (Throwable $e) {$error=$e->getMessage();}
     }
 }
+
+// Authenticated client dashboard: preserve the approved original HTML admin design.
+if (allowed() && ($_SERVER['REQUEST_METHOD']??'GET')==='GET') {
+    $html=file_get_contents(__DIR__.'/../index.html');
+    if ($html===false) {http_response_code(500);exit('Portfolio template unavailable');}
+    $source=__DIR__.'/../storage/site.json';
+    $saved=is_file($source)?json_decode((string)file_get_contents($source),true):null;
+    if (is_array($saved)&&!empty($saved['published'])&&is_array($saved['data']??null)) {
+        $dataJson=json_encode($saved['data'],JSON_HEX_TAG|JSON_HEX_AMP|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_INVALID_UTF8_SUBSTITUTE);
+        $html=preg_replace('~(<script type="application/json" id="site-data">).*?(</script>)~s','$1'.$dataJson.'$2',$html,1);
+    }
+    $html=str_replace('<head>','<head><base href="https://lashirah.com/"><meta name="robots" content="noindex,nofollow"><style>.ad-card:has(#ad-newpin){display:none!important}#admin{z-index:999999!important}</style><link rel="stylesheet" href="https://lashirah.com/cms/media.php">',$html);
+    $html=str_replace('var A=null, tab=\'medals\', editAch=-1, unlocked=false;', 'var A=null, tab=\'medals\', editAch=-1, unlocked=true;', $html);
+    // Avoid previous browser-only edits overwriting the server's published state.
+    $html=str_replace("var sv=JSON.parse(localStorage.getItem(LS_KEY)||'null');","var sv=null;",$html);
+    $html=str_replace('⬇ Download updated website','✓ Publish to website',$html);
+    $html=str_replace('Edits are saved on this device only until you download the updated website.','Review changes, then click Publish to update the live website.',$html);
+    $html=str_replace('Your edits are only on this device. Download the updated website to share it. It\\\'s one HTML file with everything inside.','Click Publish to update lashirah.com immediately.',$html);
+    $html=str_replace('case \'dl\': busy(true); downloadSite().then(function(){busy(false);},function(){busy(false);}); return;',
+      'case \'dl\': busy(true); fetch("/publish.php",{method:"POST",headers:{"Content-Type":"application/json","X-CSRF-Token":window.__CMS_TOKEN},credentials:"same-origin",body:JSON.stringify({data:D,images:CMS.getPendingImages()})}).then(function(r){return r.json().then(function(j){if(!r.ok||!j.ok)throw Error(j.error||"Publish failed");return j;});}).then(function(){busy(false);toastMsg("✓ Published to lashirah.com successfully");},function(e){busy(false);toastMsg("Publish failed: "+e.message);}); return;',
+      $html);
+    // Let the client paste a YouTube URL into the existing Videos tab.
+    $needle="var h='<div class=\"ad-card\"><h3>Video gallery</h3>";
+    $html=str_replace($needle,"var h='<div class=\"ad-card\"><h3>Video gallery</h3>",$html);
+    $html=str_replace("h+='</div></div><div class=\"ad-card\"><h3>“Coming soon” tiles", 
+      "h+='</div><div class=\"ad-card\" style=\"margin-top:16px\"><h3>Add a YouTube video</h3><p class=\"ad-help\">Paste a YouTube watch, short, live, or share URL.</p><div class=\"row\"><div class=\"fld\"><label>Video title</label><input id=\"youtube-title\" placeholder=\"Video title\"></div><div class=\"fld\"><label>YouTube link</label><input id=\"youtube-url\" type=\"url\" placeholder=\"https://youtu.be/...\"></div></div><button type=\"button\" class=\"ad-btn pri\" data-act=\"youtube-add\">＋ Add YouTube video</button></div></div><div class=\"ad-card\"><h3>“Coming soon” tiles",
+      $html);
+    $html=str_replace("case 'vid-del':", <<<'JS'
+case 'youtube-add':
+        var title=(document.getElementById('youtube-title')||{}).value||'',raw=(document.getElementById('youtube-url')||{}).value||'',id='';
+        try {var url=new URL(raw),host=url.hostname.toLowerCase().replace(/^www\./,'');
+          if(url.protocol!=='https:')throw Error('Invalid protocol');
+          if(host==='youtu.be')id=url.pathname.split('/')[1]||'';
+          else if(['youtube.com','m.youtube.com','music.youtube.com'].indexOf(host)>=0){var seg=url.pathname.split('/');id=seg[1]==='watch'?url.searchParams.get('v'):(['shorts','embed','live'].indexOf(seg[1])>=0?seg[2]:'');}
+        } catch(e){}
+        if(!/^[A-Za-z0-9_-]{11}$/.test(id)){toastMsg('Enter a valid YouTube URL');return;}
+        title=title.trim(); if(!title){toastMsg('Please enter a video title');return;}
+        D.videos.push({title:title.slice(0,150),caption:'',src:'youtube:'+id,poster:''});changed(true);toastMsg('YouTube video added. Click Publish to make it live.');return;
+      case 'vid-del':
+JS, $html);
+    // Prevent video file uploads which cannot be published by the lightweight YouTube CMS.
+    $html=str_replace("upBtn('＋ Upload video','video','video/mp4,video/quicktime,video/*')","'<span class=\"ad-help\">Use YouTube links for video publishing.</span>'",$html);
+    $html=str_replace("/* Legacy browser-only editor disabled: the secure Hostinger admin is at /admin/. */",
+       "try { if(window.CMS){CMS.boot();CMS.open();} } catch(err) {console.warn('Admin editor unavailable',err);}",$html);
+    $html=str_replace("else if(Intro) Intro.play();","else {document.body.classList.remove('intro-on');document.body.classList.add('revealed');}",$html);
+    $html=str_replace('<script type="application/json" id="site-data">','<script type="application/json" id="site-data">',$html);
+    $html=str_replace('</head>','<script>window.__CMS_TOKEN='.json_encode($_SESSION['csrf']).';</script></head>',$html);
+    header('Content-Type: text/html; charset=utf-8');
+    header('Cache-Control: no-store');
+    echo $html;
+    exit;
+}
+
 $data=allowed()?lash_data():['photos'=>[],'videos'=>[]];
 ?>
 <!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="robots" content="noindex,nofollow"><title>Lashirah · Client CMS</title>

@@ -79,6 +79,8 @@ jobs:
             --exclude='/HOSTINGER-SECURE-DEPLOY.md' \
             --exclude='/admin/config.local.php' \
             --exclude='/storage/gallery.json' \
+            --exclude='/storage/site.json' \
+            --exclude='/storage/media.css' \
             --exclude='/uploads/gallery/*.jpg' \
             --exclude='/uploads/gallery/*.jpeg' \
             --exclude='/uploads/gallery/*.png' \

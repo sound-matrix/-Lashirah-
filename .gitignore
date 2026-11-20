@@ -9,3 +9,7 @@ node_modules/
 /storage/gallery.json
 /uploads/gallery/*
 !/uploads/gallery/.htaccess
+
+# Published client edits (created on Hostinger, never commit)
+/storage/site.json
+/storage/media.css

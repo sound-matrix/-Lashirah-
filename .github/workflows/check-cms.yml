@@ -1,0 +1,73 @@
+name: Validate Lashirah CMS
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  cms:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: PHP syntax
+        run: |
+          find admin cms -name '*.php' -print0 | xargs -0 -n1 php -l
+          php -l gallery.php
+
+      - name: Exercise authenticated editor, publish and public gallery
+        run: |
+          php -r 'file_put_contents("admin/config.local.php", "<?php return ".var_export(["username"=>"clientadmin","password_hash"=>password_hash("test-password",PASSWORD_DEFAULT)],true).";");'
+          php -S 127.0.0.1:8765 -t . >/tmp/lashirah-php.log 2>&1 &
+          trap 'cat /tmp/lashirah-php.log' EXIT
+          python3 - <<'PY'
+          import http.cookiejar,json,re,time,urllib.request,urllib.parse,html,subprocess,tempfile,os
+          from pathlib import Path
+          base='http://127.0.0.1:8765'
+          jar=http.cookiejar.CookieJar()
+          opener=urllib.request.build_opener(urllib.request.HTTPCookieProcessor(jar))
+          def get(path):
+              return opener.open(base+path,timeout=12).read().decode()
+          for i in range(40):
+              try: login=get('/admin/');break
+              except Exception:time.sleep(.25)
+          else:raise Exception('PHP server unavailable')
+          m=re.search(r'name="csrf" value="([^"]+)"',login)
+          assert m,'Login CSRF token missing'
+          csrf=html.unescape(m.group(1))
+          body=urllib.parse.urlencode(dict(action='login',csrf=csrf,username='clientadmin',password='test-password')).encode()
+          opener.open(urllib.request.Request(base+'/admin/',data=body,method='POST'),timeout=15)
+          page=get('/admin/')
+          assert 'var A=null, tab=\'medals\', editAch=-1, unlocked=true;' in page,'Original authenticated editor not available'
+          assert 'youtube-add' in page,'YouTube editor missing'
+          assert 'Publish to website' in page,'Publish button missing'
+          assert '/publish.php' in page,'Live publish handler missing'
+          # Validate all executable inline scripts, including dynamically adapted original CMS.
+          extracted=[]
+          for attr,code in re.findall(r'<script([^>]*)>([\s\S]*?)</script>',page):
+              if not re.search('application/json',attr) and code.strip():extracted.append(code)
+          for idx,code in enumerate(extracted):
+              with tempfile.NamedTemporaryFile('w',suffix='.js',delete=False) as f:
+                  f.write(code);path=f.name
+              try:subprocess.run(['node','--check',path],check=True,stdout=subprocess.PIPE,stderr=subprocess.PIPE)
+              finally:os.unlink(path)
+          m=re.search(r'<script type="application/json" id="site-data">(.*?)</script>',page,re.S)
+          assert m,'Site data missing'
+          data=json.loads(m.group(1))
+          csrf=json.loads(re.search(r'window.__CMS_TOKEN=("(?:[^"\\]|\\.)*")',page).group(1))
+          data['medals']['gold']['count']=12
+          data['videos'].append({'title':'Test YouTube','src':'youtube:dQw4w9WgXcQ','caption':'demo','poster':''})
+          body=json.dumps({'data':data,'images':{}}).encode()
+          req=urllib.request.Request(base+'/admin/publish.php',data=body,headers={'Content-Type':'application/json','X-CSRF-Token':csrf},method='POST')
+          result=json.load(opener.open(req,timeout=15))
+          assert result['ok'],result
+          saved=json.loads(get('/cms/site.php'))
+          assert saved['data']['medals']['gold']['count']==12
+          gallery=get('/gallery.php?type=videos')
+          assert 'youtube-nocookie.com/embed/dQw4w9WgXcQ' in gallery,'YouTube missing in public gallery'
+          assert 'youtube-add' in page
+          print('CMS authenticated login, original dashboard rendering, inline JS syntax, publish, public content and video gallery passed.')
+          PY
