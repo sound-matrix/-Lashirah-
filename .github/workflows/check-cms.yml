@@ -54,6 +54,10 @@ jobs:
           assert 'footer-layout' in public and 'footer-athlete' in public and 'footer-credit' in public,'Footer two-column layout missing'
           assert 'Website designed and developed by' in public,'Design and development credit missing'
           assert 'www.sound-matrix.com' in public,'Company website missing'
+          assert 'class="footer-company-text"' in public,'Company title and URL must share a text column'
+          assert 'footer .footer-company-text{display:flex;flex-direction:column;align-items:flex-start' in public,'Footer URL alignment missing'
+          assert re.search(r'<span class="footer-company-name">SOUND MATRIX</span>\s*<span class="footer-url">www.sound-matrix.com</span>',public), 'Website must sit directly below SOUND MATRIX'
+
           assert "Profile details from Lashirah" not in public,'Old footer disclaimer still visible'
           assert 'id="adminLink"' not in public,'Extra footer admin link should be removed'
 
