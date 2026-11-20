@@ -399,8 +399,8 @@ html{overflow-x:hidden}
     <div class="links" id="links">
       <a href="#about">About</a>
       <a href="#achievements">Achievements</a>
-      <a href="#gallery">Gallery</a>
-      <a href="#videos">Videos</a>
+      <a href="/gallery.php?type=photos">Image Gallery</a>
+      <a href="/gallery.php?type=videos">Video Gallery</a>
       <a href="#connect">Socials</a>
       <a href="#contact">Contact</a>
       <button class="replay" id="replay" type="button" title="Replay intro">↺ Replay intro</button>
@@ -505,7 +505,7 @@ html{overflow-x:hidden}
       <span class="kicker">Gallery</span>
       <h2>Moments from <span class="hl">the range</span></h2>
     </div>
-    <div class="filters rv" id="filters">
+    <p class="lead"><a href="/gallery.php?type=photos" style="color:#dcb879">Open the full Image Gallery →</a></p><div class="filters rv" id="filters">
       <button class="chip-btn on" data-f="all">All</button>
       <button class="chip-btn" data-f="medal">Medals &amp; podiums</button>
       <button class="chip-btn" data-f="range">On the range</button>
@@ -539,7 +539,7 @@ html{overflow-x:hidden}
       <h2>Watch her <span class="hl">shoot</span></h2>
       <p class="lead">Tap a video to play. New competition and training clips will be added here.</p>
     </div>
-    <div class="vgrid" id="vgrid"><button type="button" class="v-item rv" data-vi="0" aria-label="Play video: Bullseye: Intro Film"><span class="v-thumb ph ph-introposter"></span><span class="v-play" aria-hidden="true">▶</span><span class="v-meta"><b>Bullseye: Intro Film</b><small>Full draw, release, bullseye</small></span></button>
+    <p class="lead"><a href="/gallery.php?type=videos" style="color:#dcb879">Open the YouTube Video Gallery →</a></p><div class="vgrid" id="vgrid"><button type="button" class="v-item rv" data-vi="0" aria-label="Play video: Bullseye: Intro Film"><span class="v-thumb ph ph-introposter"></span><span class="v-play" aria-hidden="true">▶</span><span class="v-meta"><b>Bullseye: Intro Film</b><small>Full draw, release, bullseye</small></span></button>
 <div class="v-item v-soon rv" aria-label="Coming soon"><span class="v-thumb"></span><span class="v-play" aria-hidden="true">＋</span><span class="v-meta"><b>Coming soon</b><small>Competition footage</small></span></div>
 <div class="v-item v-soon rv" aria-label="Coming soon"><span class="v-thumb"></span><span class="v-play" aria-hidden="true">＋</span><span class="v-meta"><b>Coming soon</b><small>Training at Ekalavya Sports Hub</small></span></div>
 <div class="v-item v-soon rv" aria-label="Coming soon"><span class="v-thumb"></span><span class="v-play" aria-hidden="true">＋</span><span class="v-meta"><b>Coming soon</b><small>Interviews &amp; behind the scenes</small></span></div></div>
@@ -612,7 +612,7 @@ html{overflow-x:hidden}
     <div>Compound Archer · Ekalavya Sports Hub, Tellapur – Hyderabad</div>
     <div class="pm">Website by Sound Matrix</div>
     <div class="src">Profile details from Lashirah's official athletic profile and the sports profile prepared by Ekalavya Sportshub. Photos © their respective owners.</div>
-    <a href="#admin" class="admin-link" id="adminLink">Admin</a>
+    <a href="/admin/" class="admin-link" id="adminLink">Client Admin</a>
   </div>
 </footer>
 <div id="toast"></div>
@@ -1370,7 +1370,7 @@ try {
   if(location.hash==='#admin'){ var ia=document.getElementById('intro'); if(ia) ia.style.display='none'; document.body.classList.remove('intro-on'); document.body.classList.add('revealed'); }
   else if(Intro) Intro.play();
 } catch(err) { var ii=document.getElementById('intro'); if(ii) ii.style.display='none'; document.body.classList.remove('intro-on'); document.body.classList.add('revealed'); }
-try { if(window.CMS) CMS.boot(); } catch(err) { console.warn('admin unavailable', err); }
+/* Legacy browser-only editor disabled: the secure Hostinger admin is at /admin/. */
 </script>
 </body>
 </html>

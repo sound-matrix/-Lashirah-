@@ -3,3 +3,9 @@ Thumbs.db
 .env
 .env.*
 node_modules/
+
+# Hostinger CMS private credentials and published content
+/admin/config.local.php
+/storage/gallery.json
+/uploads/gallery/*
+!/uploads/gallery/.htaccess
