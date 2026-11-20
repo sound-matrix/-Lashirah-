@@ -110,7 +110,7 @@ JS, $html);
     $html=str_replace('</head>',
       '<style id="admin-standalone-style">body>*:not(#admin):not(#toast):not(script):not(style){display:none!important}body{overflow:hidden!important;background:#06102a!important}#admin{position:fixed!important;inset:0!important;display:block!important;z-index:2147483647!important;overflow:auto!important}</style></head>', $html);
     $html=str_replace('</body>',
-      '<script id="admin-standalone-boot">(function(){function start(){document.body.classList.add("admin-on");document.body.classList.add("admin-standalone");try{if(!window.CMS||typeof CMS.open!=="function")throw new Error("CMS unavailable");CMS.boot();CMS.open();}catch(e){console.error("Admin startup error",e);var panel=document.getElementById("admin");if(panel){panel.textContent="Unable to load the admin editor. Please refresh the page.";color:white;font-family:system-ui\\\">Unable to load the admin editor. Please refresh the page.</div>";}}}if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",start);else start();})();</script></body>', $html);
+      '<script id="admin-standalone-boot">(function(){function start(){document.body.classList.add("admin-on");document.body.classList.add("admin-standalone");try{if(!window.CMS||typeof CMS.open!=="function")throw new Error("CMS unavailable");CMS.boot();CMS.open();}catch(e){console.error("Admin startup error",e);var panel=document.getElementById("admin");if(panel){panel.textContent="Unable to load the admin editor. Please refresh the page.";}}}if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",start);else start();})();</script></body>', $html);
 
     header('Content-Type: text/html; charset=utf-8');
     header('Cache-Control: no-store');
