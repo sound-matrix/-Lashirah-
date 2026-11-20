@@ -46,6 +46,11 @@ jobs:
           page=get('/admin/')
           assert 'var A=null, tab=\'medals\', editAch=-1, unlocked=true;' in page,'Original authenticated editor not available'
           public=get('/')
+          assert "D.gallery.unshift({src:'ph:'+r.id" in public,'New upload must be inserted at front'
+          assert 'uploadedAt:new Date().toISOString()' in public,'Gallery upload timestamp missing'
+          assert 'Import Instagram photos' in public,'Instagram export import control missing'
+          assert "upBtn('＋ Select Instagram photos','gallery','image/*',true)" in public,'Bulk image selection missing'
+
           assert 'footer-layout' in public and 'footer-athlete' in public and 'footer-credit' in public,'Footer two-column layout missing'
           assert 'Website designed and developed by' in public,'Design and development credit missing'
           assert 'www.sound-matrix.com' in public,'Company website missing'
