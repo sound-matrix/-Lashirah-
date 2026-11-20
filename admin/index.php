@@ -70,7 +70,7 @@ if (allowed() && ($_SERVER['REQUEST_METHOD']??'GET')==='GET') {
         $html=preg_replace('~(<script type="application/json" id="site-data">).*?(</script>)~s','$1'.$dataJson.'$2',$html,1);
     }
     $html=str_replace('<head>','<head><script>window.__IS_ADMIN_SITE=true;</script><base href="https://lashirah.com/"><meta name="robots" content="noindex,nofollow"><style>.ad-card:has(#ad-newpin){display:none!important}#admin{z-index:999999!important}</style><link rel="stylesheet" href="https://lashirah.com/cms/media.php">',$html);
-    $html=str_replace('var A=null, tab=\'medals\', editAch=-1, unlocked=false;', 'var A=null, tab=\'medals\', editAch=-1, unlocked=true;', $html);
+    // Keep the original PIN lock rather than forcing the editor open.
     // Avoid previous browser-only edits overwriting the server's published state.
     $html=str_replace("var sv=JSON.parse(localStorage.getItem(LS_KEY)||'null');","var sv=null;",$html);
     $html=str_replace('⬇ Download updated website','✓ Publish to website',$html);
