@@ -291,6 +291,7 @@ footer .footer-credit{text-align:right;display:flex;flex-direction:column;align-
 footer .footer-credit-label{font-size:.73rem;letter-spacing:.08em;color:var(--muted)}
 footer .footer-company{display:flex;align-items:center;justify-content:flex-end;gap:10px;color:#fff;text-decoration:none}
 footer .footer-company-mark{width:43px;height:43px;display:grid;place-items:center;border:1px solid rgba(247,198,101,.7);border-radius:12px;background:linear-gradient(145deg,rgba(255,196,86,.15),rgba(67,89,131,.12));color:var(--gold2);font:700 1.08rem/1 var(--body);letter-spacing:-.07em}
+footer .footer-company-text{display:flex;flex-direction:column;align-items:flex-start;gap:7px;white-space:nowrap}
 footer .footer-company-name{font:400 1.5rem/1 var(--head);letter-spacing:.09em;color:#fff}
 footer .footer-company:hover .footer-company-name,footer .footer-url:hover{color:var(--gold2)}
 footer .footer-url{font-size:.8rem;letter-spacing:.04em;color:var(--gold2)}
@@ -647,9 +648,11 @@ html{overflow-x:hidden}
       <span class="footer-credit-label">Website designed and developed by</span>
       <a class="footer-company" href="https://www.sound-matrix.com/" target="_blank" rel="noopener noreferrer" aria-label="Sound Matrix website">
         <span class="footer-company-mark" aria-hidden="true">SM</span>
-        <span class="footer-company-name">SOUND MATRIX</span>
+        <span class="footer-company-text">
+          <span class="footer-company-name">SOUND MATRIX</span>
+          <span class="footer-url">www.sound-matrix.com</span>
+        </span>
       </a>
-      <a class="footer-url" href="https://www.sound-matrix.com/" target="_blank" rel="noopener noreferrer">www.sound-matrix.com</a>
     </div>
   </div>
 </footer>
