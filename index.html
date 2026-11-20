@@ -2,7 +2,29 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<script>document.documentElement.className="js";window.__ok=false;setTimeout(function(){if(!window.__ok){document.documentElement.className="";var i=document.getElementById("intro");if(i)i.style.display="none";document.body&&document.body.classList.remove("intro-on");}},5000);</script>
+<style id="intro-critical-css">
+html.intro-pending{background:#000!important}
+html.intro-pending #intro{display:block!important;background:#000!important;opacity:1;visibility:visible}
+html.intro-pending body{overflow:hidden!important}
+</style>
+<script>
+document.documentElement.classList.add("js","intro-pending");
+window.__ok=false;
+window.__introReleased=false;
+window.__releaseIntro=function(){
+  if(window.__introReleased)return;
+  window.__introReleased=true;
+  document.documentElement.classList.remove("intro-pending");
+};
+window.__introFallback=setTimeout(function(){
+  if(!window.__introReleased && !window.__ok){
+    window.__releaseIntro();
+    var i=document.getElementById("intro");
+    if(i)i.style.display="none";
+    if(document.body){document.body.classList.remove("intro-on");document.body.classList.add("revealed");}
+  }
+},10000);
+</script>
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Nandavaram Lashirah · Compound Archer</title>
 <meta name="description" content="Nandavaram Lashirah, compound archer. Achievements, gallery, sponsorship and contact. Prototype by Sound Matrix.">
@@ -707,6 +729,7 @@ Intro = (function(){
         wrap.classList.remove('ending','gone','needs-tap');
         cap.classList.remove('show');
         document.body.classList.remove('intro-on');
+        if(window.__releaseIntro) window.__releaseIntro();
         finishing=false;
       }, 900);
     }, 350);
@@ -791,7 +814,7 @@ Intro = (function(){
   });
   return {play:play, finish:finish, get running(){ return running; }};
 })();
-} catch(err) { Intro=null; try{document.getElementById('intro').style.display='none';document.body.classList.remove('intro-on');document.body.classList.add('revealed');}catch(e){} }
+} catch(err) { Intro=null; try{document.getElementById('intro').style.display='none';document.body.classList.remove('intro-on');document.body.classList.add('revealed');if(window.__releaseIntro)window.__releaseIntro();}catch(e){} }
 
 /* HERO: CSS-3D archery target (no libraries). Tilts with the pointer; click / tap to shoot an arrow into it. */
 try {
@@ -1378,9 +1401,10 @@ try {
 
 window.__ok=true;
 try {
-  if(location.hash==='#admin'){ var ia=document.getElementById('intro'); if(ia) ia.style.display='none'; document.body.classList.remove('intro-on'); document.body.classList.add('revealed'); }
+  if(window.__IS_ADMIN_SITE || location.hash==='#admin'){ var ia=document.getElementById('intro'); if(ia) ia.style.display='none'; document.body.classList.remove('intro-on'); document.body.classList.add('revealed'); if(window.__releaseIntro)window.__releaseIntro(); }
   else if(Intro) Intro.play();
-} catch(err) { var ii=document.getElementById('intro'); if(ii) ii.style.display='none'; document.body.classList.remove('intro-on'); document.body.classList.add('revealed'); }
+  else {var ia=document.getElementById('intro');if(ia)ia.style.display='none';document.body.classList.add('revealed');if(window.__releaseIntro)window.__releaseIntro();}
+} catch(err) { var ii=document.getElementById('intro'); if(ii) ii.style.display='none'; document.body.classList.remove('intro-on'); document.body.classList.add('revealed'); if(window.__releaseIntro)window.__releaseIntro(); }
 /* Public portfolio reads approved edits from the Hostinger CMS. */
 try { fetch('/cms/site.php',{cache:'no-store'}).then(function(r){return r.ok?r.json():null;}).then(function(j){if(j&&j.published&&window.CMS){CMS.loadPublished(j.data);var link=document.createElement('link');link.rel='stylesheet';link.href='/cms/media.php?v='+Date.now();document.head.appendChild(link);}}).catch(function(){}); } catch(err) {console.warn('Published content unavailable',err);}
 </script>
