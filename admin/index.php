@@ -69,7 +69,7 @@ if (allowed() && ($_SERVER['REQUEST_METHOD']??'GET')==='GET') {
         $dataJson=json_encode($saved['data'],JSON_HEX_TAG|JSON_HEX_AMP|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_INVALID_UTF8_SUBSTITUTE);
         $html=preg_replace('~(<script type="application/json" id="site-data">).*?(</script>)~s','$1'.$dataJson.'$2',$html,1);
     }
-    $html=str_replace('<head>','<head><base href="https://lashirah.com/"><meta name="robots" content="noindex,nofollow"><style>.ad-card:has(#ad-newpin){display:none!important}#admin{z-index:999999!important}</style><link rel="stylesheet" href="https://lashirah.com/cms/media.php">',$html);
+    $html=str_replace('<head>','<head><script>window.__IS_ADMIN_SITE=true;</script><base href="https://lashirah.com/"><meta name="robots" content="noindex,nofollow"><style>.ad-card:has(#ad-newpin){display:none!important}#admin{z-index:999999!important}</style><link rel="stylesheet" href="https://lashirah.com/cms/media.php">',$html);
     $html=str_replace('var A=null, tab=\'medals\', editAch=-1, unlocked=false;', 'var A=null, tab=\'medals\', editAch=-1, unlocked=true;', $html);
     // Avoid previous browser-only edits overwriting the server's published state.
     $html=str_replace("var sv=JSON.parse(localStorage.getItem(LS_KEY)||'null');","var sv=null;",$html);
@@ -102,13 +102,12 @@ JS, $html);
     $html=str_replace("upBtn('＋ Upload video','video','video/mp4,video/quicktime,video/*')","'<span class=\"ad-help\">Use YouTube links for video publishing.</span>'",$html);
     $html=str_replace("/* Legacy browser-only editor disabled: the secure Hostinger admin is at /admin/. */",
        "try { if(window.CMS){CMS.boot();CMS.open();} } catch(err) {console.warn('Admin editor unavailable',err);}",$html);
-    $html=str_replace("else if(Intro) Intro.play();","else {document.body.classList.remove('intro-on');document.body.classList.add('revealed');}",$html);
     $html=str_replace('<script type="application/json" id="site-data">','<script type="application/json" id="site-data">',$html);
     $html=str_replace('</head>','<script>window.__CMS_TOKEN='.json_encode($_SESSION['csrf']).';</script></head>',$html);
     // This is a stand-alone admin application. Hide the public portfolio completely.
     // The admin editor is the original prototype's #admin overlay, mounted by its CMS module.
     $html=str_replace('</head>',
-      '<style id="admin-standalone-style">body>*:not(#admin):not(#toast):not(script):not(style){display:none!important}body{overflow:hidden!important;background:#06102a!important}#admin{position:fixed!important;inset:0!important;display:block!important;z-index:2147483647!important;overflow:auto!important}</style></head>', $html);
+      '<style id="admin-standalone-style">body>*:not(#admin):not(#toast):not(script):not(style){display:none!important}body{overflow:hidden!important;background:#06102a!important}html.intro-pending #intro{display:none!important}#admin{position:fixed!important;inset:0!important;display:block!important;z-index:2147483647!important;overflow:auto!important}</style></head>', $html);
     $html=str_replace('</body>',
       '<script id="admin-standalone-boot">(function(){function start(){document.body.classList.add("admin-on");document.body.classList.add("admin-standalone");try{if(!window.CMS||typeof CMS.open!=="function")throw new Error("CMS unavailable");CMS.boot();CMS.open();}catch(e){console.error("Admin startup error",e);var panel=document.getElementById("admin");if(panel){panel.textContent="Unable to load the admin editor. Please refresh the page.";}}}if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",start);else start();})();</script></body>', $html);
 
