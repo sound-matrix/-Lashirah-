@@ -98,6 +98,14 @@ jobs:
           assert 'admin-standalone-style' in page,'Homepage must be hidden on admin domain'
           assert 'CMS.open()' in page,'Original dashboard must open on admin domain'
           assert 'Publish to website' in page,'Publish button missing'
+          assert 'id="admin-publish-click-controller"' in page,'Direct publish click controller missing'
+          assert "event.stopImmediatePropagation();" in page,'Legacy delegated handler not intercepted'
+          assert "event.target.closest('#admin [data-act=\"dl\"]')" in page,'Publish controls are not bound'
+          assert "fetch(window.location.origin+'/publish.php'" in page,'Publish must use authenticated admin origin'
+          assert 'Published successfully. Open View site' in page,'Success feedback missing'
+          assert 'Could not publish:' in page,'Failure feedback missing'
+          assert 'cursor:pointer!important;pointer-events:auto!important' in page,'Publish button needs explicit click affordance'
+
           assert '/publish.php' in page,'Live publish handler missing'
           # Admin page declares a public-domain <base>, so relative fetch() resolves
           # against lashirah.com and loses the login session. Always use window origin.
