@@ -118,6 +118,76 @@ JS, $html);
     $html=str_replace('</body>',
       '<script id="admin-standalone-boot">(function(){function start(){document.body.classList.add("admin-on");document.body.classList.add("admin-standalone");try{if(!window.CMS||typeof CMS.open!=="function")throw new Error("CMS unavailable");CMS.boot();CMS.open();}catch(e){console.error("Admin startup error",e);var panel=document.getElementById("admin");if(panel){panel.textContent="Unable to load the admin editor. Please refresh the page.";}}}if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",start);else start();})();</script></body>', $html);
 
+    // Publish is an admin-only action. Bind it directly to document capture so that
+    // the original prototype's legacy download handler cannot swallow the click.
+    $livePublishScript = <<<'HTML'
+<style id="admin-publish-controls-style">
+#admin [data-act="dl"]{cursor:pointer!important;pointer-events:auto!important;touch-action:manipulation}
+#admin [data-act="dl"]:focus-visible{outline:3px solid #ffcc59;outline-offset:3px}
+#admin [data-act="dl"][disabled]{cursor:wait!important;opacity:.75}
+#admin-live-publish-status{display:none;position:fixed;right:18px;bottom:18px;z-index:2147483647;max-width:min(460px,calc(100vw - 36px));padding:16px 20px;background:#12243e;color:#fff;border:1px solid #eabf62;border-radius:14px;box-shadow:0 14px 35px rgba(0,0,0,.35);font:600 14px/1.5 system-ui,sans-serif}
+#admin-live-publish-status[data-state="error"]{border-color:#e06b75}
+#admin-live-publish-status[data-state="success"]{border-color:#5acb9c}
+</style>
+<div id="admin-live-publish-status" role="status" aria-live="polite"></div>
+<script id="admin-publish-click-controller">
+(function(){
+  'use strict';
+  var publishing=false;
+  function status(message,state){
+    var el=document.getElementById('admin-live-publish-status');
+    if(!el)return;
+    el.textContent=message;
+    el.dataset.state=state||'pending';
+    el.style.display='block';
+  }
+  function publish(){
+    if(publishing)return;
+    if(!window.CMS||typeof CMS.data!=='function'||typeof CMS.getPendingImages!=='function'){
+      status('The editor has not loaded. Refresh this page and try again.','error');
+      return;
+    }
+    var data=CMS.data(),images=CMS.getPendingImages();
+    if(!data||!Array.isArray(data.gallery)){
+      status('Content is not ready to publish. Refresh this page.','error');return;
+    }
+    var buttons=Array.prototype.slice.call(document.querySelectorAll('#admin [data-act="dl"]'));
+    publishing=true;
+    buttons.forEach(function(button){button.disabled=true;button.dataset.previousLabel=button.textContent;button.textContent='Publishing…';});
+    status('Publishing your changes…','pending');
+    fetch(window.location.origin+'/publish.php',{
+      method:'POST',credentials:'same-origin',
+      headers:{'Content-Type':'application/json','X-CSRF-Token':String(window.__CMS_TOKEN||'')},
+      body:JSON.stringify({data:data,images:images})
+    }).then(function(response){
+      return response.text().then(function(body){
+        var result;
+        try{result=JSON.parse(body);}catch(e){throw Error('Unexpected server response (HTTP '+response.status+').');}
+        if(!response.ok||!result.ok)throw Error(result.error||'Publish failed (HTTP '+response.status+').');
+        return result;
+      });
+    }).then(function(){
+      status('Published successfully. Open View site to see your changes.','success');
+    }).catch(function(error){
+      status('Could not publish: '+error.message,'error');
+    }).finally(function(){
+      publishing=false;
+      buttons.forEach(function(button){button.disabled=false;button.textContent='✓ Publish to website';delete button.dataset.previousLabel;});
+    });
+  }
+  // Capture before the prototype's delegated click handler; no silent download fallback.
+  document.addEventListener('click',function(event){
+    var button=event.target&&event.target.closest?event.target.closest('#admin [data-act="dl"]'):null;
+    if(!button)return;
+    event.preventDefault();
+    event.stopImmediatePropagation();
+    publish();
+  },true);
+})();
+</script>
+HTML;
+    $html=str_replace('</body>',$livePublishScript.'</body>',$html);
+
     header('Content-Type: text/html; charset=utf-8');
     header('Cache-Control: no-store');
     echo $html;
