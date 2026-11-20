@@ -44,6 +44,8 @@ jobs:
           body=urllib.parse.urlencode(dict(action='login',csrf=csrf,username='clientadmin',password='test-password')).encode()
           opener.open(urllib.request.Request(base+'/admin/',data=body,method='POST'),timeout=15)
           page=get('/admin/')
+          Path('/tmp/lashirah-admin-page.html').write_text(page)
+          subprocess.run(['node','tests/admin-publish-click.test.cjs'],check=True)
           assert 'var A=null, tab=\'medals\', editAch=-1, unlocked=true;' in page,'Original authenticated editor not available'
           public=get('/')
           assert "D.gallery.unshift({src:'ph:'+r.id" in public,'New upload must be inserted at front'
