@@ -66,6 +66,9 @@ if (allowed() && ($_SERVER['REQUEST_METHOD']??'GET')==='GET') {
     $source=__DIR__.'/../storage/site.json';
     $saved=is_file($source)?json_decode((string)file_get_contents($source),true):null;
     if (is_array($saved)&&!empty($saved['published'])&&is_array($saved['data']??null)) {
+        // The public publishing endpoint deliberately strips PIN metadata.
+        // Restore the original dashboard PIN hash for the authenticated editor.
+        $saved['data']['pinHash']='p7c794d2c';
         $dataJson=json_encode($saved['data'],JSON_HEX_TAG|JSON_HEX_AMP|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_INVALID_UTF8_SUBSTITUTE);
         $html=preg_replace('~(<script type="application/json" id="site-data">).*?(</script>)~s','$1'.$dataJson.'$2',$html,1);
     }
