@@ -102,7 +102,6 @@ JS, $html);
     $html=str_replace("upBtn('＋ Upload video','video','video/mp4,video/quicktime,video/*')","'<span class=\"ad-help\">Use YouTube links for video publishing.</span>'",$html);
     $html=str_replace("/* Legacy browser-only editor disabled: the secure Hostinger admin is at /admin/. */",
        "try { if(window.CMS){CMS.boot();CMS.open();} } catch(err) {console.warn('Admin editor unavailable',err);}",$html);
-    $html=str_replace("else if(Intro) Intro.play();","else {document.body.classList.remove('intro-on');document.body.classList.add('revealed');}",$html);
     $html=str_replace('<script type="application/json" id="site-data">','<script type="application/json" id="site-data">',$html);
     $html=str_replace('</head>','<script>window.__CMS_TOKEN='.json_encode($_SESSION['csrf']).';</script></head>',$html);
     // This is a stand-alone admin application. Hide the public portfolio completely.
