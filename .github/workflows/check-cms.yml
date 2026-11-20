@@ -43,6 +43,9 @@ jobs:
           page=get('/admin/')
           assert 'var A=null, tab=\'medals\', editAch=-1, unlocked=true;' in page,'Original authenticated editor not available'
           assert 'youtube-add' in page,'YouTube editor missing'
+          assert 'admin-standalone-boot' in page,'Standalone admin startup missing'
+          assert 'admin-standalone-style' in page,'Homepage must be hidden on admin domain'
+          assert 'CMS.open()' in page,'Original dashboard must open on admin domain'
           assert 'Publish to website' in page,'Publish button missing'
           assert '/publish.php' in page,'Live publish handler missing'
           # Validate all executable inline scripts, including dynamically adapted original CMS.
