@@ -29,3 +29,13 @@ Interactive athlete portfolio for Nandavaram Lashirah, prepared for hosting on H
 - Payment processing is not integrated yet. Integrate via backend or a provider-hosted checkout. Never put payment secret keys in frontend files.
 
 The original approved visuals and content have been retained. The heavy embedded gallery styles and intro media were separated into assets solely to facilitate GitHub and Hostinger deployment.
+
+## Client Admin & YouTube Gallery upgrade
+
+For the server-side client administration, Hostinger PHP setup, private credentials, gallery upload permissions, and admin subdomain mapping, see [HOSTINGER-ADMIN-SETUP.md](HOSTINGER-ADMIN-SETUP.md).
+
+- Admin: `https://admin.CLIENT-DOMAIN` (configure DNS, Hostinger subdomain document root and SSL)
+- Images: `/gallery.php?type=photos`
+- YouTube videos: `/gallery.php?type=videos`
+
+Both galleries are independent; the new CMS publishes uploads and YouTube embeds to every visitor. Existing preloaded prototype content remains in the homepage and is not migrated automatically.
