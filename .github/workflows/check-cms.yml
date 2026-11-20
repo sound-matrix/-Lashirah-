@@ -91,7 +91,9 @@ jobs:
           for idx,code in enumerate(extracted):
               with tempfile.NamedTemporaryFile('w',suffix='.js',delete=False) as f:
                   f.write(code);path=f.name
-              try:subprocess.run(['node','--check',path],check=True,stdout=subprocess.PIPE,stderr=subprocess.PIPE)
+              try:
+                  result=subprocess.run(['node','--check',path],capture_output=True,text=True)
+                  if result.returncode: raise AssertionError('Inline script %d failed JS syntax: %s'%(idx,result.stderr))
               finally:os.unlink(path)
           m=re.search(r'<script type="application/json" id="site-data">(.*?)</script>',page,re.S)
           assert m,'Site data missing'
