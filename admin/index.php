@@ -74,6 +74,9 @@ if (allowed() && ($_SERVER['REQUEST_METHOD']??'GET')==='GET') {
     // Avoid previous browser-only edits overwriting the server's published state.
     $html=str_replace("var sv=JSON.parse(localStorage.getItem(LS_KEY)||'null');","var sv=null;",$html);
     $html=str_replace('⬇ Download updated website','✓ Publish to website',$html);
+    // Use a real link for View site so browser navigation works without JS/popup permissions.
+    $html=str_replace('<button type="button" class="ad-btn sm" data-act="close">View site</button>',
+      '<a class="ad-btn sm" href="https://lashirah.com/" target="_blank" rel="noopener noreferrer">View site</a>', $html);
     // The editor is hosted on admin.lashirah.com. Close must open the public website,
     // not merely remove the overlay while leaving the admin-only page visible.
     $html=str_replace("case 'close': close(); return;",
