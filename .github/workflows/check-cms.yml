@@ -46,7 +46,7 @@ jobs:
           page=get('/admin/')
           Path('/tmp/lashirah-admin-page.html').write_text(page)
           subprocess.run(['node','tests/admin-publish-click.test.cjs'],check=True)
-          assert 'var A=null, tab=\'medals\', editAch=-1, unlocked=true;' in page,'Original authenticated editor not available'
+          assert 'var A=null, tab=\'medals\', editAch=-1, unlocked=false;' in page,'Original PIN lock must remain enabled'
           public=get('/')
           assert "D.gallery.unshift({src:'ph:'+r.id" in public,'New upload must be inserted at front'
           assert 'uploadedAt:new Date().toISOString()' in public,'Gallery upload timestamp missing'
@@ -142,6 +142,19 @@ jobs:
           assert result['ok'],result
           saved=json.loads(get('/cms/site.php'))
           assert saved['data']['medals']['gold']['count']==12
+          assert saved['data']['pinHash']=='','Public site should not store admin PIN'
+          editor_again=get('/admin/')
+          reloaded_match=re.search(r'<script type="application/json" id="site-data">(.*?)</script>',editor_again,re.S)
+          assert reloaded_match,'Reloaded admin site data missing'
+          reloaded_data=json.loads(reloaded_match.group(1))
+          def pin_hash(value):
+              h=5381
+              for char in value:h=((h*33)+ord(char))&0xffffffff
+              return 'p'+format(h,'x')
+          assert reloaded_data['pinHash']==pin_hash('2014'),'Client PIN must still unlock after publishing'
+          assert 'id="ad-pinf"' in editor_again,'PIN unlock form must be preserved'
+          assert "case 'lock': unlocked=false;" in editor_again,'Lock button must remain functional'
+
           gallery=get('/gallery.php?type=videos')
           assert 'youtube-nocookie.com/embed/dQw4w9WgXcQ' in gallery,'YouTube missing in public gallery'
           assert 'youtube-add' in page
