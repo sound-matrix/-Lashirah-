@@ -99,6 +99,14 @@ jobs:
           assert 'CMS.open()' in page,'Original dashboard must open on admin domain'
           assert 'Publish to website' in page,'Publish button missing'
           assert '/publish.php' in page,'Live publish handler missing'
+          # Admin page declares a public-domain <base>, so relative fetch() resolves
+          # against lashirah.com and loses the login session. Always use window origin.
+          assert 'fetch(window.location.origin+"/publish.php"' in page,'Publish must target authenticated admin domain, not public base URL'
+          assert 'fetch("/publish.php"' not in page,'Public-base relative publish URL is broken'
+          assert 'credentials:"same-origin"' in page,'Authenticated publish must include session cookie'
+          assert '<a class="ad-btn sm" href="https://lashirah.com/" target="_blank" rel="noopener noreferrer">View site</a>' in page,'View site must be a real public link'
+          assert '<button type="button" class="ad-btn sm" data-act="close">View site</button>' not in page,'Broken View site overlay button remains'
+
           # Validate all executable inline scripts, including dynamically adapted original CMS.
           extracted=[]
           for attr,code in re.findall(r'<script([^>]*)>([\s\S]*?)</script>',page):
