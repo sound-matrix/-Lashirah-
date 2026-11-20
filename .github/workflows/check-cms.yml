@@ -17,6 +17,7 @@ jobs:
         run: |
           find admin cms -name '*.php' -print0 | xargs -0 -n1 php -l
           php -l gallery.php
+          php -l contact.php
 
       - name: Exercise authenticated editor, publish and public gallery
         run: |
