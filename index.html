@@ -1169,7 +1169,7 @@ CMS = (function(){
     return h+'</div><div class="ad-row" style="margin-top:12px">'+upBtn('＋ Add photo','achphoto','image/*',false,'')+'</div></div>';
   }
   function vPhotos(){
-    var h='<div class="ad-card"><h3>Photo gallery</h3><p class="ad-help">Photos are resized to 1600 px and compressed automatically.</p><div class="ad-row" style="margin-bottom:14px">'+upBtn('＋ Upload photos','gallery','image/*',true)+'</div><div class="ad-list">';
+    var h='<div class="ad-card"><h3>Photo gallery</h3><p class="ad-help">Newest photos are shown first. Every new upload becomes photo #1, while older photos move down automatically. Photos are resized to 1600 px and compressed.</p><div class="ad-row" style="margin-bottom:14px">'+upBtn('＋ Upload photos','gallery','image/*',true)+'</div><div class="ad-card" style="margin:0 0 16px;padding:14px"><h4 style="margin:0 0 5px">Import Instagram photos</h4><p class="ad-help" style="margin:0 0 10px">Use photos exported from @lashirah_nandavaram_archer. Select all extracted JPG, PNG or WebP images below, then Publish. The newest selected upload appears first. Instagram account access is not connected, so this does not automatically download posts.</p>'+upBtn('＋ Select Instagram photos','gallery','image/*',true)+'</div><div class="ad-list">';
     D.gallery.forEach(function(g,i){ h+='<div class="ad-item">'+thumb(g.src)+'<div class="tx"><div class="row" style="grid-template-columns:1fr 170px">'+fld('Caption','gallery.'+i+'.caption')+fld('Filter','gallery.'+i+'.f',{options:FOPTS})+'</div></div><div class="act"><button type="button" class="ad-btn sm" data-act="gal-up" data-i="'+i+'" aria-label="Move up">↑</button><button type="button" class="ad-btn sm" data-act="gal-down" data-i="'+i+'" aria-label="Move down">↓</button><button type="button" class="ad-btn sm danger" data-act="gal-del" data-i="'+i+'">Delete</button></div></div>'; });
     return h+'</div></div>';
   }
@@ -1256,7 +1256,7 @@ CMS = (function(){
     if(kind==='gallery'||kind==='achphoto'){
       files.forEach(function(f){ chain=chain.then(function(){ return addImage(f).then(function(r){
         var cap=f.name.replace(/\.[^.]+$/,'').replace(/[_-]+/g,' ');
-        if(kind==='gallery') D.gallery.unshift({src:'ph:'+r.id,f:'range',caption:cap,w:r.w,h:r.h});
+        if(kind==='gallery') D.gallery.unshift({src:'ph:'+r.id,f:'range',caption:cap,w:r.w,h:r.h,uploadedAt:new Date().toISOString()});
         else (D.achievements[editAch].photos=D.achievements[editAch].photos||[]).push({src:'ph:'+r.id,caption:cap});
       }); }); });
       chain.then(function(){ changed(true); busy(false); toastMsg(files.length+' photo(s) added.'); }).catch(function(e){ changed(true); busy(false); toastMsg(e.message); });
