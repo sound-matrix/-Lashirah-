@@ -18,6 +18,7 @@ jobs:
           find admin cms -name '*.php' -print0 | xargs -0 -n1 php -l
           php -l gallery.php
           php -l contact.php
+          php -l cms/mail.php
 
       - name: Exercise authenticated editor, publish and public gallery
         run: |
@@ -90,6 +91,13 @@ jobs:
           except urllib.error.HTTPError as ex:assert ex.code==422
           result=json.load(submit({'name':'Visitor','email':'visitor@example.net','message':'Interested in sponsorship','phone':'','about':'Sponsorship','tier':'Lead Title & Equipment Partner','website':''}))
           assert result['ok']
+          smtp_source=Path('cms/mail.php').read_text()
+          assert "addReplyTo($visitorEmail, $visitorName)" in smtp_source,'Visitor email must be Reply-To'
+          assert "addAddress($recipient)" in smtp_source,'Recipient must remain the private client inbox'
+          assert "setFrom((string)$config['username'], 'Lashirah Enquiries')" in smtp_source,'Sender must be the authenticated mailbox'
+          assert "smtp.hostinger.com" in smtp_source and "ENCRYPTION_SMTPS" in smtp_source,'Authenticated encrypted SMTP required'
+          assert "private/mail.local.php" in smtp_source,'SMTP credentials must be server-private'
+          assert "lash_send_enquiry(CONTACT_RECIPIENT,$name,$email,$subject,$body)" in Path('contact.php').read_text()
           captured=Path('/tmp/lashirah-contact-message.txt').read_text()
           assert 'nandavaramhassan@gmail.com' in captured, 'Private destination missing from mock envelope'
           assert 'Interested in sponsorship' in captured

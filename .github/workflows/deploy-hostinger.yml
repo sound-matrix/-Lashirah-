@@ -30,8 +30,15 @@ jobs:
         run: |
           php -l gallery.php
           php -l cms/library.php
+          php -l cms/mail.php
+          php -l contact.php
           php -l admin/index.php
           php -l admin/config.example.php
+
+      - name: Install authenticated mail transport
+        run: |
+          composer install --no-dev --prefer-dist --no-interaction --optimize-autoloader
+          php -r 'require "vendor/autoload.php"; if (!class_exists("PHPMailer\\PHPMailer\\PHPMailer")) exit(1);'
 
       - name: Verify deployment key secret
         env:
