@@ -101,6 +101,8 @@ jobs:
           assert 'CMS.open()' in page,'Original dashboard must open on admin domain'
           assert 'Publish to website' in page,'Publish button missing'
           assert 'id="admin-publish-click-controller"' in page,'Direct publish click controller missing'
+          assert 'body>*:not(#admin):not(#toast):not(#admin-live-publish-status)' in page,'Publish success and error status must be visible in admin'
+
           assert "event.stopImmediatePropagation();" in page,'Legacy delegated handler not intercepted'
           assert "event.target.closest('#admin [data-act=\"dl\"]')" in page,'Publish controls are not bound'
           assert "fetch(window.location.origin+'/publish.php'" in page,'Publish must use authenticated admin origin'

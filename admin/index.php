@@ -114,7 +114,7 @@ JS, $html);
     // This is a stand-alone admin application. Hide the public portfolio completely.
     // The admin editor is the original prototype's #admin overlay, mounted by its CMS module.
     $html=str_replace('</head>',
-      '<style id="admin-standalone-style">body>*:not(#admin):not(#toast):not(script):not(style){display:none!important}body{overflow:hidden!important;background:#06102a!important}html.intro-pending #intro{display:none!important}#admin{position:fixed!important;inset:0!important;display:block!important;z-index:2147483647!important;overflow:auto!important}</style></head>', $html);
+      '<style id="admin-standalone-style">body>*:not(#admin):not(#toast):not(#admin-live-publish-status):not(script):not(style){display:none!important}body{overflow:hidden!important;background:#06102a!important}html.intro-pending #intro{display:none!important}#admin{position:fixed!important;inset:0!important;display:block!important;z-index:2147483647!important;overflow:auto!important}</style></head>', $html);
     $html=str_replace('</body>',
       '<script id="admin-standalone-boot">(function(){function start(){document.body.classList.add("admin-on");document.body.classList.add("admin-standalone");try{if(!window.CMS||typeof CMS.open!=="function")throw new Error("CMS unavailable");CMS.boot();CMS.open();}catch(e){console.error("Admin startup error",e);var panel=document.getElementById("admin");if(panel){panel.textContent="Unable to load the admin editor. Please refresh the page.";}}}if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",start);else start();})();</script></body>', $html);
 
