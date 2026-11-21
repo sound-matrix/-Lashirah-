@@ -9,7 +9,10 @@ header('Referrer-Policy: no-referrer');
 header('Cache-Control: no-store');
 $configPath=__DIR__.'/config.local.php';
 $config=is_file($configPath)?require $configPath:null;
-$ready=is_array($config)&&!empty($config['username'])&&!empty($config['password_hash'])&&$config['password_hash']!=='PASTE_PASSWORD_HASH_HERE';
+// The client approved a single four-digit PIN instead of a second username/password.
+ // Keep verification server-side. Hostinger may override this hash in config.local.php.
+$pinHash=(is_array($config)&&!empty($config['pin_hash']))?(string)$config['pin_hash']:'$2y$12$1G0//ovyeDdSqFgtkT8G/ebNspp3T7tsJXMIHKmNl7jB1bV/APFDi';
+$ready=true;
 if (!isset($_SESSION['csrf'])) $_SESSION['csrf']=bin2hex(random_bytes(24));
 $error='';$success='';
 function allowed(): bool {return !empty($_SESSION['lash_admin']);}
@@ -17,10 +20,17 @@ function csrf_check(): void {if (!hash_equals((string)($_SESSION['csrf']??''),(s
 if (($_SERVER['REQUEST_METHOD']??'GET')==='POST') {
     csrf_check();$action=(string)($_POST['action']??'');
     if ($action==='login' && $ready) {
-        if (hash_equals((string)$config['username'],(string)($_POST['username']??'')) && password_verify((string)($_POST['password']??''),(string)$config['password_hash'])) {
-            session_regenerate_id(true);$_SESSION['lash_admin']=true;header('Location: ./');exit;
+        $now=time();
+        $attempts=$_SESSION['pin_attempts']??[];
+        $attempts=array_values(array_filter(is_array($attempts)?$attempts:[],static fn($t)=>is_int($t)&&$t>$now-900));
+        if (count($attempts)>=5) {
+            http_response_code(429);$error='Too many attempts. Try again in 15 minutes.';
+        } elseif (preg_match('/^[0-9]{4}$/D',(string)($_POST['pin']??'')) && password_verify((string)$_POST['pin'],$pinHash)) {
+            session_regenerate_id(true);$_SESSION['pin_attempts']=[];$_SESSION['lash_admin']=true;header('Location: ./');exit;
+        } else {
+            $attempts[]=$now;$_SESSION['pin_attempts']=$attempts;
+            usleep(300000);$error='Incorrect PIN. Please try again.';
         }
-        usleep(300000);$error='Invalid username or password.';
     } elseif ($action==='logout') {
         $_SESSION=[];session_destroy();header('Location: ./');exit;
     } elseif (allowed()) {
@@ -76,6 +86,14 @@ if (allowed() && ($_SERVER['REQUEST_METHOD']??'GET')==='GET') {
     // Keep the original PIN lock rather than forcing the editor open.
     // Avoid previous browser-only edits overwriting the server's published state.
     $html=str_replace("var sv=JSON.parse(localStorage.getItem(LS_KEY)||'null');","var sv=null;",$html);
+    // Server session already verified the PIN: do not ask the client a second time.
+    $html=str_replace("var A=null, tab='medals', editAch=-1, unlocked=false;",
+      "var A=null, tab='medals', editAch=-1, unlocked=!!window.__IS_ADMIN_SITE;",$html);
+    $html=str_replace("try{ unlocked=sessionStorage.getItem(SS_KEY)===D.pinHash; }catch(e){}",
+      "try{ if(!window.__IS_ADMIN_SITE) unlocked=sessionStorage.getItem(SS_KEY)===D.pinHash; }catch(e){}",$html);
+    // Lock means sign out of the server session, not another client-side PIN prompt.
+    $html=str_replace("case 'lock': unlocked=false; try{ sessionStorage.removeItem(SS_KEY); }catch(e){} render(); return;",
+      "case 'lock': { var f=document.createElement('form'); f.method='POST'; f.action='./'; var a=document.createElement('input');a.type='hidden';a.name='action';a.value='logout';f.appendChild(a);var c=document.createElement('input');c.type='hidden';c.name='csrf';c.value=window.__CMS_TOKEN||'';f.appendChild(c);document.body.appendChild(f);f.submit();return; }",$html);
     $html=str_replace('⬇ Download updated website','✓ Publish to website',$html);
     // Use a real link for View site so browser navigation works without JS/popup permissions.
     $html=str_replace('<button type="button" class="ad-btn sm" data-act="close">View site</button>',
@@ -204,7 +222,7 @@ $data=allowed()?lash_data():['photos'=>[],'videos'=>[]];
 :root{color-scheme:dark;font-family:Inter,system-ui,-apple-system,Segoe UI,sans-serif;background:#081226;color:#eaf1ff}*{box-sizing:border-box}body{margin:0;min-height:100vh}header{padding:24px max(20px,calc((100vw - 1100px)/2));border-bottom:1px solid #263650;background:#101c32;display:flex;align-items:center;justify-content:space-between;gap:16px}h1{font-size:22px;margin:0}h2{font-size:18px}p,small{color:#adbed7}main{max-width:1100px;margin:42px auto;padding:0 20px}.panel{background:#111e35;border:1px solid #2a3c5b;border-radius:18px;padding:24px;margin-bottom:24px}.login{max-width:450px;margin:80px auto}label{display:block;margin:14px 0 6px;font-size:13px;color:#cbd9ee}input{width:100%;background:#09152a;border:1px solid #3a506f;border-radius:10px;padding:13px;color:#fff;font:inherit}button{font:inherit;border:0;border-radius:10px;padding:12px 17px;background:#d3ac64;color:#101728;cursor:pointer;font-weight:700}button.danger{background:#422437;color:#ffccd5}button.ghost{background:#263750;color:#eaf1ff}.grid{display:grid;grid-template-columns:1fr 1fr;gap:24px}.items{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:14px}.item{background:#0b1527;border:1px solid #283c56;border-radius:12px;overflow:hidden}.item img{width:100%;aspect-ratio:16/10;object-fit:cover}.item .info{padding:12px}.info p{overflow-wrap:anywhere;min-height:36px;margin:5px 0 12px}form.inline{display:inline}form.inline button{padding:8px 12px}.notice{padding:12px 16px;border-radius:10px;background:#173a35;color:#b8f5dd;margin-bottom:20px}.error{background:#4c2431;color:#ffd7dd}.tabs{display:flex;gap:8px;margin:20px 0}.tabs a{color:#fff;text-decoration:none;background:#263750;padding:10px 16px;border-radius:9px}@media(max-width:750px){.grid{grid-template-columns:1fr}header{padding:18px 20px}}
 </style></head><body><header><div><h1>LASHIRAH <span style="color:#d3ac64">/ CONTENT MANAGER</span></h1><small>Private client administration</small></div><?php if(allowed()): ?><form method="post"><input type="hidden" name="csrf" value="<?=lash_escape($_SESSION['csrf'])?>"><input type="hidden" name="action" value="logout"><button class="ghost">Sign out</button></form><?php endif ?></header><main>
 <?php if(!$ready): ?><div class="panel login"><h2>Complete secure setup</h2><p>On Hostinger, create <code>admin/config.local.php</code> from <code>admin/config.example.php</code>, generate a password hash and set your admin username. No default login is provided.</p></div>
-<?php elseif(!allowed()): ?><div class="panel login"><h2>Client sign in</h2><?php if($error): ?><div class="notice error"><?=lash_escape($error)?></div><?php endif ?><form method="post"><input type="hidden" name="csrf" value="<?=lash_escape($_SESSION['csrf'])?>"><input type="hidden" name="action" value="login"><label>Username</label><input name="username" autocomplete="username" required><label>Password</label><input type="password" name="password" autocomplete="current-password" required><p><button type="submit">Secure sign in</button></p></form></div>
+<?php elseif(!allowed()): ?><div class="panel login"><h2>Client sign in</h2><?php if($error): ?><div class="notice error"><?=lash_escape($error)?></div><?php endif ?><form method="post"><input type="hidden" name="csrf" value="<?=lash_escape($_SESSION['csrf'])?>"><input type="hidden" name="action" value="login"><label for="client-pin">4-digit PIN</label><input id="client-pin" name="pin" type="password" inputmode="numeric" pattern="[0-9]{4}" maxlength="4" autocomplete="off" aria-label="4-digit PIN" required autofocus><p><button type="submit">Unlock CMS</button></p></form></div>
 <?php else: ?>
 <p>Changes publish immediately to the website’s separate galleries.</p>
 <?php if($error): ?><div class="notice error"><?=lash_escape($error)?></div><?php endif ?><?php if($success): ?><div class="notice"><?=lash_escape($success)?></div><?php endif ?>
